@@ -1,0 +1,115 @@
+name: code-migration
+version: 1
+description: OpenSpec delivery for a migration with a feasible migration strategy
+
+# The planning pack is migration-plans/<migration-name>/: legacy-inventory.md,
+# legacy-baseline.md, and migration-strategy.md, written by the
+# migration-inventory and migration-strategy skills.
+#
+# The gate script ships with this schema. Instructions below call it as
+#   node <schema>/scripts/migration_gate.mjs
+# where <schema> is the "path" printed by `openspec schema which code-migration --json`.
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Handoff from the migration planning pack
+    template: proposal.md
+    instruction: |
+      Run `node <schema>/scripts/migration_gate.mjs stage propose --root
+      migration-plans/<migration-name>` first, with <schema> from
+      `openspec schema which code-migration --json`. If it fails, stop and show
+      the user its output; each line names the step to run.
+
+      Write a short handoff: planning-pack path, scope, target stack, the
+      capabilities you will specify (grouping related LEGACY behaviours, using
+      existing spec paths where they exist), and major decisions and accepted
+      risks. Reference planning IDs instead of copying planning content, and
+      never edit the planning pack.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Testable target behaviour, one spec per capability
+    template: spec.md
+    instruction: |
+      Create one specs/<capability-path>/spec.md per capability named in
+      proposal.md. Requirements describe observable target behaviour with stable
+      REQ-<CAPABILITY>-### IDs and trace to LEGACY and MIG-RULE IDs. Follow the
+      strategy's behaviour policy: PRESERVE by default, and CHANGE,
+      BUG_NOT_PRESERVED, or SECURITY_FIX_REQUIRED where it says so. Every LEGACY
+      behaviour not marked REMOVE must be covered by a requirement. Every
+      requirement uses SHALL or MUST and has at least one WHEN/THEN scenario.
+      Add no scope beyond the strategy.
+    requires:
+      - proposal
+
+  - id: design
+    generates: design.md
+    description: Target architecture, migration batches, cutover, and rollback
+    template: design.md
+    instruction: |
+      Design the target system from the specs and the strategy: component
+      mapping, data and interface conversion, error and transaction semantics,
+      security, deployment, cutover, and rollback. Handle data as the strategy's
+      gap decisions say.
+
+      Split the work into BATCH-### rows in "Migration Batches": dependency
+      ordered, each independently verifiable and reversible, with measurable
+      exit criteria and a rollback method. Give decisions DEC-### IDs. A
+      decision that would change behaviour or scope beyond the strategy goes
+      back to the user, not into the design.
+    requires:
+      - proposal
+      - specs
+
+  - id: test-plan
+    generates: test-plan.md
+    description: Verification plan for target correctness and legacy fidelity
+    template: test-plan.md
+    instruction: |
+      Mandatory; write it after design.md and before tasks.md. Give checks
+      TEST-### IDs. Every requirement maps to at least one TEST, or to an
+      approved reason it cannot be tested. For each TEST record the traced IDs,
+      oracle, fixtures or data setup, command, pass criteria, and where it runs
+      (locally, or in CI when the project has CI). Mark tests that must fail
+      before implementation and tests that protect rollback.
+    requires:
+      - proposal
+      - specs
+      - design
+
+  - id: tasks
+    generates: tasks.md
+    description: Dependency-ordered tasks grouped by migration batch
+    template: tasks.md
+    instruction: |
+      Group tasks by the batches in design.md (`- [ ] X.Y ...`). Each task names
+      its BATCH, REQ/DEC, and TEST IDs and a concrete verification command. Add
+      characterization checks before changing covered behaviour. If the project
+      has CI, include tasks that make its checks deterministic. Add no work
+      outside the strategy's scope.
+
+      Finish by running `node <schema>/scripts/migration_gate.mjs coverage
+      --root migration-plans/<migration-name> --change <this change root>` and
+      `node <schema>/scripts/migration_gate.mjs lint --root <this change root>
+      --defs migration-plans/<migration-name> "**/*.md"`, and fix every problem
+      they report.
+    requires:
+      - proposal
+      - specs
+      - design
+      - test-plan
+
+apply:
+  requires:
+    - tasks
+  tracks: tasks.md
+  instruction: |
+    Implement one BATCH at a time. Run each task's TEST checks before marking
+    it complete, and stop on unexplained behavioural differences. Never
+    reproduce BUG_NOT_PRESERVED behaviour or skip SECURITY_FIX_REQUIRED work.
+    Commit or push only when the user asks.
+
+    When every batch is done, mention that the migration-review skill (code
+    mode) is available for an optional review.
