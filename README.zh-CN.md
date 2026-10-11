@@ -44,8 +44,10 @@
 |---|---|
 | Inventory | 记录了 39 个组件和 73 条可观察行为。就绪检查结论为 **BLOCKED**，有两个缺口：原始建表语句在仓库和 git 历史里都找不到（GAP-001），原始数据也已丢失（GAP-002）。同时指出 Eclipse 工程没有构建脚本，旧系统在本机跑不起来。 |
 | Strategy | 向用户确认了 13 项决定。目标是 Python 3.12.10、Flask 3.1.3、waitress 3.0.2，以及使用 STRICT 表和 WAL 的 SQLite。GAP-001 的处理方式是按 DAO 里的 SQL 重建表结构，沿用旧列名并补上约束。GAP-002 的处理方式是用 `init-db` 命令导入演示数据。9 条行为标为 `SECURITY_FIX_REQUIRED`，15 条标为 `BUG_NOT_PRESERVED`。这一步整理出 27 条兼容性发现，并实际跑了 13 个实验，例如对 SQLite 做 20 个并发购买，以及验证 waitress 的真实请求体上限。结论为 `FEASIBLE_WITH_CONDITIONS`。 |
-| OpenSpec 变更 | 8 个能力 spec、48 条需求、22 个设计决定、8 个可回滚的批次、45 个测试、62 个任务。`coverage` 和 `lint` 都通过，项目的 GitHub Actions 也会运行这两项检查。 |
-| 实现 | Flask 应用和 256 个 pytest 测试（单元、Flask 测试客户端、真实 waitress 服务器、仓库扫描），在 GitHub Actions 的 `windows-latest` 上运行。安全方面的改动包括 SQL 参数化、scrypt 口令哈希、CSRF 令牌和输出自动转义。截至 2026 年 10 月，62 个任务完成了 56 个，剩下的是确认 CI、人工检查页面效果和正式切换。 |
+| OpenSpec 变更 | 8 个能力 spec、48 条需求、22 个设计决定、8 个可回滚的批次、45 个测试、61 个任务。`coverage` 和 `lint` 都通过。 |
+| 实现 | Flask 应用和 610 个 pytest 测试（单元、Flask 测试客户端、真实 waitress 服务器、仓库扫描）。安全方面的改动包括 SQL 参数化、scrypt 口令哈希、CSRF 令牌和输出自动转义。 |
+| 验证 | 610 个测试在本机和 GitHub Actions 的 `windows-latest` 上全部通过，同一次 CI 运行里门禁脚本的 `coverage` 和 `lint` 也通过。回滚做过演练：把实现相关的提交 revert 掉以后，代码树和实现开始前完全一致；另有一个测试会在 CI 里停掉真实的服务器，再从备份恢复数据。页面效果在浏览器里人工检查过。 |
+| 结果 | 61 个任务全部完成，并通过 PR #1 合入 `master`。项目没有正式运行环境，所以去掉了正式切换的任务。切换步骤写在 BookShop 的运行说明里，同样的冒烟检查会在 CI 中自动执行。 |
 
 ## 环境要求
 
