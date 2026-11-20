@@ -4,6 +4,8 @@
 
 一组 Agent Skills 和一个 [OpenSpec](https://github.com/Fission-AI/OpenSpec) schema，用来做"有证据支撑"的代码迁移。先盘点旧系统，再确定迁移方针并证明它可行，之后由 OpenSpec 编写变更文档并实施。
 
+OpenSpec 本身也能用在已有代码库上，做法是随每个 change 逐步补充 spec。这个仓库针对另一种情况，把旧系统迁移到另一种语言或技术栈，并保留确定要保留的行为。schema 和 skill 需要配合使用，schema 的第一个 artifact 读取的规划包由 skill 生成。
+
 这些 skill 采用开放的 [Agent Skills](https://agentskills.io) 格式，Claude Code、Codex 以及其他能读取 `SKILL.md` 文件夹的 agent 都可以使用。
 
 ## 工作流程
@@ -51,7 +53,7 @@
 
 ## 环境要求
 
-- OpenSpec CLI 1.13.1 或更高版本，并已为你的 agent 生成 OpenSpec 自带的 skill（`openspec init --tools <your-agent>`）。
+- OpenSpec CLI 1.13.1 或更高版本，并已为你的 agent 生成 OpenSpec 自带的 skill（`openspec init --tools <your-agent>`）。CI 会用 1.13.1 和最新版本测试。
 - Node.js（OpenSpec 本身也需要）。
 
 ## 安装
@@ -66,7 +68,7 @@ npx skills add ryukirin/openspec-code-migration
 
 然后在项目里运行 `migration-setup` skill。它会把 schema 复制到 `openspec/schemas/code-migration/` 并做校验。更新 skill 之后要再运行一次。
 
-只想用 schema、不用 skill 的话，把 `skills/migration-setup/schema/code-migration/` 复制到 `openspec/schemas/code-migration/`，再运行 `openspec schema validate code-migration`。
+schema 的第一个 artifact `proposal` 会读取 `migration-plans/<migration-name>/` 里的规划包，规划包缺失或不完整时会停止。只想用 schema、不用 skill 的话，把 `skills/migration-setup/schema/code-migration/` 复制到 `openspec/schemas/code-migration/`，运行 `openspec schema validate code-migration`，再按 schema 的 `templates/` 目录里的模板自己编写 `legacy-inventory.md`、`legacy-baseline.md` 和 `migration-strategy.md`。propose 之前先用 `node <schema>/scripts/migration_gate.mjs stage propose --root migration-plans/<migration-name>` 检查规划包。
 
 ## 提供自己的迁移方针
 
@@ -101,6 +103,16 @@ operations:
     guidance:
       - 迁移完成后不要 archive 这个变更。
 ```
+
+## 开发
+
+在仓库根目录运行测试：
+
+```
+node --test
+```
+
+门禁脚本的测试使用 `tests/fixtures/` 里的示例规划包和变更。`tests/openspec.test.mjs` 还会用 PATH 上的 OpenSpec CLI（或 `OPENSPEC_BIN` 指定的 CLI）完整跑一遍 schema，没有安装 CLI 时跳过。CI 在 Ubuntu 和 Windows 上，分别用 OpenSpec 1.13.1 和最新版本运行这些测试。
 
 ## 许可证
 

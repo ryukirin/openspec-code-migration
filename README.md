@@ -4,6 +4,8 @@ English | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 Agent skills and an [OpenSpec](https://github.com/Fission-AI/OpenSpec) schema for evidence-driven code migrations. You inventory the legacy system, settle a migration strategy and prove it feasible, and then OpenSpec writes and implements the change.
 
+OpenSpec already works on existing codebases by adding specs one change at a time. This repository covers a different case: moving a legacy system to another language or stack while keeping the behaviour you decide to keep. Use the schema and the skills together. The skills write the planning pack that the schema's first artifact reads.
+
 The skills use the open [Agent Skills](https://agentskills.io) format, so they work in Claude Code, Codex, and other agents that read `SKILL.md` folders.
 
 ## Workflow
@@ -51,7 +53,7 @@ The legacy app had 4 servlets that dispatch on an `opttype` parameter, 4 DAOs th
 
 ## Requirements
 
-- OpenSpec CLI 1.13.1 or later, with OpenSpec's own skills generated for your agent (`openspec init --tools <your-agent>`).
+- OpenSpec CLI 1.13.1 or later, with OpenSpec's own skills generated for your agent (`openspec init --tools <your-agent>`). CI tests 1.13.1 and the latest release.
 - Node.js, which OpenSpec already requires.
 
 ## Install
@@ -66,7 +68,7 @@ Or copy the folders under `skills/` into your agent's skills directory: `.claude
 
 Then run the `migration-setup` skill in your project. It copies the schema into `openspec/schemas/code-migration/` and validates it. Run it again after updating the skills.
 
-To use the schema without the skills, copy `skills/migration-setup/schema/code-migration/` to `openspec/schemas/code-migration/` and run `openspec schema validate code-migration`.
+The schema's first artifact, `proposal`, reads the planning pack in `migration-plans/<migration-name>/` and stops if the pack is missing or incomplete. To use the schema without the skills, copy `skills/migration-setup/schema/code-migration/` to `openspec/schemas/code-migration/`, run `openspec schema validate code-migration`, and write `legacy-inventory.md`, `legacy-baseline.md`, and `migration-strategy.md` yourself from the templates in the schema's `templates/` directory. Before you propose, check the pack with `node <schema>/scripts/migration_gate.mjs stage propose --root migration-plans/<migration-name>`.
 
 ## Supplying your own strategy
 
@@ -101,6 +103,16 @@ operations:
     guidance:
       - Do not archive the change when the migration is done.
 ```
+
+## Development
+
+Run the tests from the repository root:
+
+```
+node --test
+```
+
+The gate tests use the sample planning pack and change in `tests/fixtures/`. `tests/openspec.test.mjs` also runs the schema through the OpenSpec CLI on your PATH (or the one `OPENSPEC_BIN` points to) and is skipped when the CLI is not installed. CI runs the tests on Ubuntu and Windows with OpenSpec 1.13.1 and the latest release.
 
 ## License
 
