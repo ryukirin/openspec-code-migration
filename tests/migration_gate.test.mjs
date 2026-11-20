@@ -52,7 +52,7 @@ test("stage propose needs a strategy for every gap", (t) => {
 
 test("stage propose needs a disposition for every suspected defect", (t) => {
   const { pack } = workspace(t);
-  edit(path.join(pack, "migration-strategy.md"), "| LEGACY-002 | SECURITY_FIX_REQUIRED | Escape the name |\n", "");
+  edit(path.join(pack, "migration-strategy.md"), "| LEGACY-002 | SECURITY_FIX_REQUIRED | Escape the name |", "");
   fails(gate("stage", "propose", "--root", pack), /LEGACY-002 \(suspected defect\) has no disposition/);
 });
 
