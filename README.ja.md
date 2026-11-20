@@ -4,6 +4,8 @@
 
 根拠に基づいてコード移行を進めるための Agent Skills と [OpenSpec](https://github.com/Fission-AI/OpenSpec) スキーマです。まず旧システムを棚卸しし、移行方針を決めて実現できることを確かめます。そのあと OpenSpec が変更ドキュメントを書き、実装まで進めます。
 
+OpenSpec 自体も既存のコードベースで使えます。その場合は、変更のたびに spec を少しずつ増やしていきます。このリポジトリが扱うのは別のケースで、旧システムを別の言語や技術スタックに移し、残すと決めた振る舞いを保ちます。スキーマとスキルは組み合わせて使います。スキーマの最初の artifact が読む計画パックは、スキルが作成します。
+
 スキルはオープンな [Agent Skills](https://agentskills.io) 形式なので、Claude Code や Codex をはじめ、`SKILL.md` フォルダを読めるエージェントで使えます。
 
 ## ワークフロー
@@ -51,7 +53,7 @@
 
 ## 動作環境
 
-- OpenSpec CLI 1.13.1 以降。使うエージェント向けに、OpenSpec 自身のスキルを生成しておいてください（`openspec init --tools <your-agent>`）。
+- OpenSpec CLI 1.13.1 以降。使うエージェント向けに、OpenSpec 自身のスキルを生成しておいてください（`openspec init --tools <your-agent>`）。CI では 1.13.1 と最新版でテストしています。
 - Node.js（OpenSpec 自体も必要とします）。
 
 ## インストール
@@ -66,7 +68,7 @@ npx skills add ryukirin/openspec-code-migration
 
 そのあと、プロジェクトで `migration-setup` スキルを実行します。スキーマを `openspec/schemas/code-migration/` にコピーして検証します。スキルを更新したら、もう一度実行してください。
 
-スキルを使わずスキーマだけを使う場合は、`skills/migration-setup/schema/code-migration/` を `openspec/schemas/code-migration/` にコピーし、`openspec schema validate code-migration` を実行します。
+スキーマの最初の artifact である `proposal` は `migration-plans/<migration-name>/` の計画パックを読み、パックがないか不完全なときは止まります。スキルを使わずスキーマだけを使う場合は、`skills/migration-setup/schema/code-migration/` を `openspec/schemas/code-migration/` にコピーし、`openspec schema validate code-migration` を実行します。そのうえで、スキーマの `templates/` にあるテンプレートをもとに `legacy-inventory.md`、`legacy-baseline.md`、`migration-strategy.md` を自分で書きます。propose の前に `node <schema>/scripts/migration_gate.mjs stage propose --root migration-plans/<migration-name>` でパックを確認してください。
 
 ## 手元の移行方針を渡す
 
@@ -101,6 +103,16 @@ operations:
     guidance:
       - 移行が終わっても、この変更は archive しない。
 ```
+
+## 開発
+
+リポジトリのルートでテストを実行します。
+
+```
+node --test
+```
+
+ゲートスクリプトのテストは、`tests/fixtures/` にあるサンプルの計画パックと変更を使います。`tests/openspec.test.mjs` は PATH 上の OpenSpec CLI（または `OPENSPEC_BIN` で指定した CLI）でスキーマを一通り動かし、CLI が入っていなければスキップします。CI では Ubuntu と Windows で、OpenSpec 1.13.1 と最新版を使ってテストを実行します。
 
 ## ライセンス
 
